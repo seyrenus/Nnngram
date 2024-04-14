@@ -36,10 +36,9 @@ public class BuildVars {
     public static final String APPCENTER_HASH = "PLACEHOLDER";
     public static String SAFETYNET_KEY = "";
 
-    public static String SMS_HASH = "O2P2z+/jBpJ";
-    public static final  String PLAYSTORE_APP_URL = "";
+    public static String SMS_HASH = "";
+    public static String PLAYSTORE_APP_URL = "https://play.google.com/store/apps/details?id=xyz.nextalone.nnngram";
     public static String HUAWEI_STORE_URL = "";
-
     public static String GOOGLE_AUTH_CLIENT_ID = "760348033671-81kmi3pi84p11ub8hp9a1funsv0rn2p9.apps.googleusercontent.com";
 
 
