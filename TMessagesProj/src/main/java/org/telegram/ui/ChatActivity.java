@@ -1297,13 +1297,16 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
     public final static int OPTION_GIFT = 108;
     public final static int OPTION_EDIT_TODO = 109;
     public final static int OPTION_ADD_TO_TODO = 110;
-    
+
     public final static int OPTION_SUGGESTION_EDIT_PRICE = 111;
     public final static int OPTION_SUGGESTION_EDIT_TIME = 112;
     public final static int OPTION_SUGGESTION_EDIT_MESSAGE = 113;
     public final static int OPTION_SUGGESTION_ADD_OFFER = 114;
 
     private boolean isChannelBottomMuteView = false;
+
+    private final static int OPTION_MARK = 1000;
+    private final static int OPTION_FAV = 1001;
 
     private final static int[] allowedNotificationsDuringChatListAnimations = new int[]{
             NotificationCenter.messagesRead,
@@ -1686,7 +1689,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
     private final static int hide_title = 102;
 
     private final static int delete_history = 101;
-
+    private final static int go_to_mark = 1000;
 
     private final static int attach_photo = 0;
     private final static int attach_gallery = 1;
@@ -4246,6 +4249,10 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                             hideTitleItem.setText(LocaleController.getString("HideTitle", R.string.HideTitle));
                         }
                     }
+                } else if (id == go_to_mark) {
+                    SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("rssconfig", Activity.MODE_PRIVATE);
+
+                    jumpToMark(preferences.getInt("bookmark", 1));
                 }
             }
         });
@@ -4613,6 +4620,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 feeItemGap.setVisibility(View.GONE);
                 feeItemText.setVisibility(View.GONE);
             }
+            headerItem.lazilyAddSubItem(go_to_mark, R.drawable.msg_help, "go_to_mark");
         } else if (chatMode == MODE_EDIT_BUSINESS_LINK) {
             headerItem = menu.addItem(chat_menu_options, R.drawable.ic_ab_other, themeDelegate);
             headerItem.setContentDescription(LocaleController.getString(R.string.AccDescrMoreOptions));
@@ -34624,6 +34632,20 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 openUserProfile(from.user_id != 0 ? from.user_id : from.channel_id != 0 ? from.channel_id : from.chat_id);
                 break;
             }
+            case OPTION_MARK: {
+                SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("rssconfig", Activity.MODE_PRIVATE);
+                SharedPreferences.Editor editor = preferences.edit();
+                MessageObject message = selectedObject;
+                editor.putInt("bookmark", message.messageOwner.id);
+                editor.commit();
+                break;
+            }
+            case OPTION_FAV: {
+                MessageObject message = selectedObject;
+                xyz.nextalone.nnngram.ui.ShareAlert shareAlert = xyz.nextalone.nnngram.ui.ShareAlert.createShareAlert(getParentActivity(), message, null, false, null, true);
+                shareAlert.show();
+                break;
+            }
             case OPTION_FACT_CHECK: {
                 MessageObject msg = selectedObjectGroup != null ? selectedObjectGroup.findPrimaryMessageObject() : selectedObject;
                 FactCheckController.getInstance(currentAccount).openFactCheckEditor(getContext(), getResourceProvider(), msg, false);
@@ -40196,7 +40218,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             if (true) {
                 selectedObject = messageObject;
                 selectedObjectGroup = null;
-                
+
                 TodoItemMenu menu = new TodoItemMenu(getContext(), getResourceProvider());
                 menu.setCell(ChatActivity.this, cell, task.id);
 
@@ -44102,6 +44124,13 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         int lastBottom;
     }
 
+    public void jumpToMark(int messageId) {
+        if (messages.isEmpty()) {
+            return;
+        }
+        scrollToMessageId(messageId, 0, false, 0, true, 0);
+    }
+
     private class RecyclerListViewInternal extends RecyclerListView implements StoriesListPlaceProvider.ClippedView {
         public RecyclerListViewInternal(Context context, ThemeDelegate themeDelegate) {
             super(context, themeDelegate);
@@ -44388,6 +44417,20 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             } else {
                 undoView.showWithAction(0, UndoView.ACTION_LINK_COPIED, null);
             }
+        });
+
+        options.add( R.drawable.msg_copy, "Share", () -> {
+            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+            shareIntent.setType("text/plain");
+            shareIntent.putExtra(Intent.EXTRA_TEXT, str);
+            Intent chooserIntent = Intent.createChooser(shareIntent, LocaleController.getString("ShareFile", R.string.ShareFile));
+            chooserIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            ApplicationLoader.applicationContext.startActivity(chooserIntent);
+        });
+
+        options.add( R.drawable.msg_copy, "Favorite", () -> {
+                xyz.nextalone.nnngram.ui.ShareAlert shareAlert = xyz.nextalone.nnngram.ui.ShareAlert.createShareAlert(getParentActivity(), null, str, false, null, true);
+                shareAlert.show();
         });
 
         dialog.setItemOptions(options);
@@ -45341,7 +45384,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         final int type = getMessageType(message);
         CharSequence messageTextToTranslate = null;
         int[] messageIdToTranslate = new int[]{message.getId()};
-        
+
         boolean allowChatActions = true;
         boolean allowPin;
         if (chatMode == MODE_SAVED || chatMode == MODE_QUICK_REPLIES) {
@@ -45402,7 +45445,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         if (currentChat != null && (!ChatObject.canSendMessages(currentChat))) {
             allowChatActions = false;
         }
-        
+
         if (selectedObject.type != MessageObject.TYPE_EMOJIS && selectedObject.type != MessageObject.TYPE_ANIMATED_STICKER && selectedObject.type != MessageObject.TYPE_STICKER) {
             messageTextToTranslate = getMessageCaption(message, groupedMessages, messageIdToTranslate);
             if (messageTextToTranslate == null && selectedObject.isPoll()) {
@@ -45427,7 +45470,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         if (selectedObject.translated || selectedObject.isRestrictedMessage) {
             messageTextToTranslate = null;
         }
-        
+
         if (message.isSponsored() && !getUserConfig().isPremium() && !getMessagesController().premiumFeaturesBlocked() && !message.sponsoredCanReport) {
             items.add(LocaleController.getString(R.string.HideAd));
             options.add(OPTION_HIDE_SPONSORED_MESSAGE);
@@ -45958,6 +46001,16 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                     items.add(LocaleController.getString(chatMode == MODE_SAVED && threadMessageId != getUserConfig().getClientUserId() ? R.string.Remove : R.string.Delete));
                     options.add(OPTION_DELETE);
                     icons.add(deleteIconRes);
+                }
+                if (selectedObject != null && selectedObject.contentType == 0) {
+                    items.add("Mark");
+                    options.add(OPTION_MARK);
+                    icons.add(R.drawable.msg_archive);
+                }
+                if (selectedObject != null && selectedObject.contentType == 0) {
+                    items.add("Favorite");
+                    options.add(OPTION_FAV);
+                    icons.add(R.drawable.msg_shareout);
                 }
             } else {
                 if (allowChatActions && !isInsideContainer) {
