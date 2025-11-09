@@ -9213,7 +9213,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         if (currentUser != null || currentChat != null) {
             BackButtonRecentMenu.addToRecentDialogs(currentAccount, currentUser != null ? currentUser.id : -currentChat.id);
         }
-        
+
         if (getDialogId() == getUserConfig().getClientUserId() && chatMode != MODE_SAVED) {
             savedMessagesHint = new HintView2(context, HintView2.DIRECTION_TOP);
             savedMessagesHint.setMultilineText(true);
@@ -15011,7 +15011,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         public String text;
         public ArrayList<TLRPC.MessageEntity> entities;
         public int offset, length;
-        
+
         public TLRPC.TodoItem task;
 
         private ReplyQuote(long peerId, @NonNull MessageObject message, int start, int end) {
@@ -33851,7 +33851,9 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 File f = new File(path);
                 if (Build.VERSION.SDK_INT >= 24) {
                     try {
-                        intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(getParentActivity(), ApplicationLoader.getApplicationId() + ".provider", f));
+                        Uri uri = FileProvider.getUriForFile(getParentActivity(), ApplicationLoader.getApplicationId() + ".provider", f);
+                        intent.putExtra(Intent.EXTRA_STREAM, uri);
+                        intent.setClipData(ClipData.newRawUri(null, uri));
                         intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     } catch (Exception ignore) {
                         intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(f));
