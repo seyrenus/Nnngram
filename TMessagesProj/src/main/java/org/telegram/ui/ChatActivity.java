@@ -1310,6 +1310,9 @@ public class ChatActivity extends BaseFragment implements
 
     private boolean isChannelBottomMuteView = false;
 
+    private final static int OPTION_MARK = 1000;
+    private final static int OPTION_FAV = 1001;
+
     public final static int OPTION_VIEW_STATISTICS = 115;
     public final static int OPTION_WELCOME_REVERT = 116;
 
@@ -1716,7 +1719,7 @@ public class ChatActivity extends BaseFragment implements
     private final static int hide_title = 102;
 
     private final static int delete_history = 101;
-
+    private final static int go_to_mark = 1000;
 
     private final static int attach_photo = 0;
     private final static int attach_gallery = 1;
@@ -4472,6 +4475,10 @@ public class ChatActivity extends BaseFragment implements
                     dumpCanvas();
                 } else if (id == 889) {
                     sendDebugRichMessage();
+                } else if (id == go_to_mark) {
+                    SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("rssconfig", Activity.MODE_PRIVATE);
+
+                    jumpToMark(preferences.getInt("bookmark", 1));
                 }
             }
         });
@@ -4889,6 +4896,7 @@ public class ChatActivity extends BaseFragment implements
                 feeItemGap.setVisibility(View.GONE);
                 feeItemText.setVisibility(View.GONE);
             }
+            headerItem.lazilyAddSubItem(go_to_mark, R.drawable.msg_help, "go_to_mark");
         } else if (chatMode == MODE_EDIT_BUSINESS_LINK) {
             headerItem = menu.addItem(chat_menu_options, otherIcon);
             otherIcon.addView(headerItem.getIconView());
@@ -26595,13 +26603,13 @@ public class ChatActivity extends BaseFragment implements
                 if (obj.messageOwner.action instanceof TLRPC.TL_messageActionSetMessagesTTL && messages.size() == 2) {
                     placeToPaste = 1;
                 }
-                
+
                 if (hasSentMessages) {
                     if (chatAdapter != null) {
                         chatAdapter.checkRemoveBotForumRowsStartThreadRow(true);
                     }
                 }
-                
+
                 if (dayArray == null) {
                     dayArray = new ArrayList<>();
                     messagesByDays.put(obj.dateKey, dayArray);
@@ -35412,6 +35420,20 @@ public class ChatActivity extends BaseFragment implements
             case OPTION_OPEN_PROFILE: {
                 TLRPC.Peer from = selectedObject.messageOwner.from_id;
                 openUserProfile(from.user_id != 0 ? from.user_id : from.channel_id != 0 ? from.channel_id : from.chat_id);
+                break;
+            }
+            case OPTION_MARK: {
+                SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("rssconfig", Activity.MODE_PRIVATE);
+                SharedPreferences.Editor editor = preferences.edit();
+                MessageObject message = selectedObject;
+                editor.putInt("bookmark", message.messageOwner.id);
+                editor.commit();
+                break;
+            }
+            case OPTION_FAV: {
+                MessageObject message = selectedObject;
+                xyz.nextalone.nnngram.ui.ShareAlert shareAlert = xyz.nextalone.nnngram.ui.ShareAlert.createShareAlert(getParentActivity(), message, null, false, null, true);
+                shareAlert.show();
                 break;
             }
             case OPTION_FACT_CHECK: {
@@ -45765,6 +45787,13 @@ public class ChatActivity extends BaseFragment implements
         int lastBottom;
     }
 
+    public void jumpToMark(int messageId) {
+        if (messages.isEmpty()) {
+            return;
+        }
+        scrollToMessageId(messageId, 0, false, 0, true, 0);
+    }
+
     private class RecyclerListViewInternal extends RecyclerListView implements StoriesListPlaceProvider.ClippedView {
         public RecyclerListViewInternal(Context context, ThemeDelegate themeDelegate) {
             super(context, themeDelegate);
@@ -46086,6 +46115,20 @@ public class ChatActivity extends BaseFragment implements
                 ArticleViewer.addBookmark(str, currentAccount, contentView, null, themeDelegate);
             });
         }
+
+        options.add( R.drawable.msg_copy, "Share", () -> {
+            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+            shareIntent.setType("text/plain");
+            shareIntent.putExtra(Intent.EXTRA_TEXT, str);
+            Intent chooserIntent = Intent.createChooser(shareIntent, LocaleController.getString("ShareFile", R.string.ShareFile));
+            chooserIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            ApplicationLoader.applicationContext.startActivity(chooserIntent);
+        });
+
+        options.add( R.drawable.msg_copy, "Favorite", () -> {
+                xyz.nextalone.nnngram.ui.ShareAlert shareAlert = xyz.nextalone.nnngram.ui.ShareAlert.createShareAlert(getParentActivity(), null, str, false, null, true);
+                shareAlert.show();
+        });
 
         dialog.setItemOptions(options);
         if (str != null && str.startsWith("mailto:")) {
@@ -47832,6 +47875,16 @@ public class ChatActivity extends BaseFragment implements
                     items.add(LocaleController.getString(chatMode == MODE_SAVED && threadMessageId != getUserConfig().getClientUserId() ? R.string.Remove : R.string.Delete));
                     options.add(OPTION_DELETE);
                     icons.add(deleteIconRes);
+                }
+                if (selectedObject != null && selectedObject.contentType == 0) {
+                    items.add("Mark");
+                    options.add(OPTION_MARK);
+                    icons.add(R.drawable.msg_archive);
+                }
+                if (selectedObject != null && selectedObject.contentType == 0) {
+                    items.add("Favorite");
+                    options.add(OPTION_FAV);
+                    icons.add(R.drawable.msg_shareout);
                 }
             } else {
                 if ((allowChatActions || isEphemeralFromBot) && (primaryMessage == null || !primaryMessage.isWelcomeMessage()) && !isInsideContainer && chatMode != MODE_WELCOME_MESSAGES) {
