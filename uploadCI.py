@@ -30,7 +30,7 @@ def genFileDirectory(path):
 
 def sendMetadataDesc():
     parma = {
-        "chat_id": os.environ.get("CHAT_ID"),
+        "chat_id": "-100"+os.environ.get("CHAT_ID"),
         "text": os.environ["COMMIT_MESSAGE"],
     }
     print(parma)
@@ -43,7 +43,7 @@ def sendApkToChat(path):
     file = genFileDirectory(path)
 
     parma = {
-        "chat_id": os.environ.get("CHAT_ID"),
+        "chat_id": "-100"+os.environ.get("CHAT_ID"),
         "caption": "Congratulations! New Nnngram build out.\n\nVersion: `"
         + os.environ.get("VERSION_NAME", "")
         + "("
@@ -65,7 +65,7 @@ def sendAPKs(path):
     file = genFileDirectory(path)
 
     parma = {
-        "chat_id": os.environ.get("CHAT_ID"),
+        "chat_id": "-100"+os.environ.get("CHAT_ID"),
         "caption": "Congratulations! New Nnngram build out.\n\nVersion: `"
         + os.environ.get("VERSION_NAME", "")
         + "("
@@ -86,7 +86,7 @@ def sendAPKs(path):
 
 def sendMetadata(changesID, startID):
     parma = {
-        "chat_id": os.environ.get("CHAT_ID"),
+        "chat_id": "-100"+os.environ.get("CHAT_ID"),
         "text": str(os.getenv("VERSION_NAME"))
         + ","
         + str(os.getenv("VERSION_CODE"))
